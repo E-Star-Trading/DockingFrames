@@ -183,12 +183,12 @@
 	</developers>
 
 	<properties>
-		<javaVersion>1.6</javaVersion>
+		<javaVersion>1.8</javaVersion>
 		<maven.compiler.source>${javaVersion}</maven.compiler.source>
 		<maven.compiler.target>${javaVersion}</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.javadoc.failOnError>false</maven.javadoc.failOnError>
-		<toolsJar>${java.home}/../lib/tools.jar</toolsJar>
+		<toolsJar>${JAVA_HOME_8}/lib/tools.jar</toolsJar>
 	</properties>
 
 	<build>
