@@ -98,7 +98,7 @@ public class XEclipseTabPainter extends XBaseTabComponent {
         }
 
         public Border getFullBorder( BorderedComponent owner, DockController controller, Dockable dockable ){
-          return UIManager.getBorder("TextField.border");
+          return UIManager.getBorder("Dock.title.border");
         }
     };
 
@@ -229,7 +229,7 @@ public class XEclipseTabPainter extends XBaseTabComponent {
 
     private Color getTextColor(){
 		// @liso: change tab foreground
-		return UIManager.getColor("Table.foreground");
+		return UIManager.getColor("Dock.foreground");
     }
     
     @Override

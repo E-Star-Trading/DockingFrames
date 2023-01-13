@@ -325,7 +325,7 @@ public class XButtonPanel extends ButtonPanel {
 			for (ActionItem item : actions) {
 				if (item.item != null) {
 					//TODO @liso set hover color for close button in tab
-					item.item.setBackground(UIManager.getColor("Button.pressedBackground"));
+					item.item.setBackground(UIManager.getColor("Dock.hoverBackground"));
 				}
 			}
 		}
