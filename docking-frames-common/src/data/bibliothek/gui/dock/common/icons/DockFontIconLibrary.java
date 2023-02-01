@@ -20,9 +20,10 @@ import jiconfont.swing.IconFontSwing;
  */
 public class DockFontIconLibrary {
 
-	private static final String											EET_ICON_FONT_PATH				= "eeticonfont.ttf";
-	private static final String											EET_ICON_FONT_NAME				= "EETIconFont";
 	private static final int											DEFAULT_FONT_SIZE				= 10;
+	private static final String											DOCK_ICON_FONT_PATH				= "icon-set.ttf";
+	private static final String											DOCK_ICON_FONT_NAME				= "DockIconFont";
+	
 	private static final int DEFAULT_BIG_FONT_SIZE = 12;
 
 	// maps an icon identifier to its definition for icon creation
@@ -32,12 +33,12 @@ public class DockFontIconLibrary {
 
 	static {
 		// add mappings from icon identifier to font icon definitions including the name of the font, the icon is contained within and its unicode for creation.
-		addFontIconDefinition(DockFontIconIdentifier.CLOSE, EET_ICON_FONT_NAME, '\uE800', DEFAULT_BIG_FONT_SIZE);
-		addFontIconDefinition(DockFontIconIdentifier.MINIMIZE_WINDOW, EET_ICON_FONT_NAME, '\uF2D1', DEFAULT_BIG_FONT_SIZE);
-		addFontIconDefinition(DockFontIconIdentifier.MAXIMIZE_WINDOW, EET_ICON_FONT_NAME, '\uF2D0', DEFAULT_BIG_FONT_SIZE);
-		addFontIconDefinition(DockFontIconIdentifier.RESTORE_WINDOW, EET_ICON_FONT_NAME, '\uF2D2', DEFAULT_BIG_FONT_SIZE);
+		addFontIconDefinition(DockFontIconIdentifier.CLOSE, DOCK_ICON_FONT_NAME, '\uE800', DEFAULT_BIG_FONT_SIZE);
+		addFontIconDefinition(DockFontIconIdentifier.MINIMIZE_WINDOW, DOCK_ICON_FONT_NAME, '\uF2D1', DEFAULT_BIG_FONT_SIZE);
+		addFontIconDefinition(DockFontIconIdentifier.MAXIMIZE_WINDOW, DOCK_ICON_FONT_NAME, '\uF2D0', DEFAULT_BIG_FONT_SIZE);
+		addFontIconDefinition(DockFontIconIdentifier.RESTORE_WINDOW, DOCK_ICON_FONT_NAME, '\uF2D2', DEFAULT_BIG_FONT_SIZE);
 		// register custom font
-		registerFont(EET_ICON_FONT_PATH, EET_ICON_FONT_NAME);
+		registerFont(DOCK_ICON_FONT_PATH, DOCK_ICON_FONT_NAME);
 	}
 	
 	private static void addFontIconDefinition(DockFontIconIdentifier iconIdentifier, String customFontName, char unicode, int defaultFontSize, Color defaultColor) {
