@@ -66,6 +66,22 @@ import bibliothek.util.ClientOnly;
  */
 @ClientOnly
 public class XCEclipseTheme extends CDockTheme<XEclipseTheme>{
+	
+	public static class XGlobalConfig {
+		/**
+		 * defines the gap between dockables
+		 */
+		private static Integer dockablesSpan = 5;
+
+		public static Integer getDockablesSpan() {
+			return dockablesSpan;
+		}
+
+		public static void setDockablesSpan(Integer dockablesSpan) {
+			XGlobalConfig.dockablesSpan = dockablesSpan;
+		}
+	}
+	
     /**
      * Creates a new theme.
      * @param control the controller for which this theme will be used

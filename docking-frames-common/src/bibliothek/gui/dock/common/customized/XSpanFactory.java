@@ -29,8 +29,6 @@ public class XSpanFactory implements SpanFactory {
 		return new Span() {
 
 			// @liso: change the gap between the dockables
-			private int size = 5;
-
 			public void set(SpanMode mode) {
 				// ignore
 			}
@@ -43,14 +41,11 @@ public class XSpanFactory implements SpanFactory {
 				if (callback.getUsage() == SpanUsage.HIDING) {
 					return 5;
 				}
-				return size;
+				return XCEclipseTheme.XGlobalConfig.getDockablesSpan();
 			}
 
 			public void configureSize(SpanMode mode, int size) {
-				if (mode == SpanMode.OFF) {
-					this.size = size;
-					callback.resized();
-				}
+				// after testing seems to be that SpanMode is always OPEN for our cases, therefore logic was removed
 			}
 		};
 	}
