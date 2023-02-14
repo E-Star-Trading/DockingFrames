@@ -33,6 +33,7 @@ import java.awt.font.TextLayout;
 import java.awt.geom.Rectangle2D;
 
 import javax.swing.Icon;
+import javax.swing.UIManager;
 
 import bibliothek.gui.dock.util.font.GenericFontModifier;
 
@@ -62,7 +63,7 @@ public class TabMenuOverflowIcon implements Icon{
 	}
 	
 	public void paintIcon( Component c, Graphics g, int x, int y ){
-		g.setColor( c.getForeground() );
+		g.setColor(UIManager.getColor("icon.color"));
 		
 		drawArrow( g, x+1, y+1 );
 		drawArrow( g, x+4, y+1 );
