@@ -27,10 +27,10 @@ package bibliothek.gui.dock.station.stack.menu;
 
 import java.awt.Component;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.AbstractAction;
 import javax.swing.JPopupMenu;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
@@ -45,8 +45,7 @@ import bibliothek.gui.Dockable;
  */
 public class PopupCombinedMenuContent implements CombinedMenuContent{
 	/** currently open menu */
-	private JPopupMenu menu;
-	
+	private XJPopupMenu menu;
 	/** the observers of this menu */
 	private List<CombinedMenuContentListener> listeners = new ArrayList<CombinedMenuContentListener>();
 	
@@ -69,7 +68,7 @@ public class PopupCombinedMenuContent implements CombinedMenuContent{
 	public void open( DockController controller, Component parent, int x, int y, Item[] content ){
 		cancel();
 		
-		menu = new JPopupMenu();
+		menu = new XJPopupMenu();
 		menu.addPopupMenuListener( new PopupMenuListener(){
 			public void popupMenuCanceled( PopupMenuEvent e ){
 				cancel();
@@ -83,7 +82,7 @@ public class PopupCombinedMenuContent implements CombinedMenuContent{
 		});
 		
 		for( Item item : content ){
-			menu.add( new ItemAction( item ) );
+			menu.add(new XItemButton(item));
 		}
 		
 		menu.show( parent, x, y );
@@ -121,28 +120,18 @@ public class PopupCombinedMenuContent implements CombinedMenuContent{
 			}
 		}
 	}
-
-	/**
-	 * A single item of this menu.
-	 * @author Benjamin Sigg
-	 */
-	private class ItemAction extends AbstractAction{
+	
+	class XItemButton extends XJButton {
 		private Dockable dockable;
 		
-		/**
-		 * Creates a new action.
-		 * @param content text, icon and value of this action
-		 */
-		public ItemAction( Item content ){
+		public XItemButton(Item content) {
+			super(content.getText());
 			this.dockable = content.getDockable();
-			putValue( NAME, content.getText() );
-			putValue( SHORT_DESCRIPTION, content.getToolTip() );
-			putValue( SMALL_ICON, content.getIcon() );
-			setEnabled( content.isEnabled() );
-		}
-		
-		public void actionPerformed( ActionEvent e ){
-			select( dockable );
+			this.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent e) {
+                    select( dockable );
+                }
+            });
 		}
 	}
 }

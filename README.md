@@ -19,3 +19,6 @@ Define following UI Manager keys in your code:
 - Dock.background
 - Panel.group.background
 - Dock.title.border - provide your own implementation for round corner border (simple example: https://stackoverflow.com/questions/15025092/border-with-rounded-corners-transparency)
+
+## additional features
+- adds scrollable JPopupMenu
