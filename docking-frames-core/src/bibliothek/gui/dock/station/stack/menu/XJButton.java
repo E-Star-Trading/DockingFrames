@@ -39,8 +39,7 @@ public class XJButton extends JButton {
 	 * Initialize component LAF and add Listeners
 	 */
 	private void init() {
-		MouseAdapter mouseAdapter = getMouseAdapter();
-
+		
 		//	Basically JGoodies LAF UI for JButton does not allow Background color to be set.
 		// So we need to set the default UI,        
 		ComponentUI ui = BasicButtonUI.createUI(this);
@@ -53,7 +52,7 @@ public class XJButton extends JButton {
 		//        setModel(new JToggleButton.ToggleButtonModel());
 		setModel(new XJButtonModel());
 		setSelected(false);
-		this.addMouseListener(mouseAdapter);
+		this.addMouseListener(getMouseAdapter());
 
 	}
 

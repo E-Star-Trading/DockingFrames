@@ -61,12 +61,8 @@ public class XJPopupMenu extends JPopupMenu implements ActionListener {
 			Dimension cMaxSize = c.getMaximumSize();
 
 			contentHeight += (int) cMaxSize.getHeight();
-
-			int cWidth = (int) cMaxSize.getWidth();
-
-			if (cWidth > contentWidth) {
-				contentWidth = cWidth;
-			}
+			
+			contentWidth = Math.max((int) cMaxSize.getWidth(), contentWidth);
 		}
 
 		boolean overflowsVertical = contentHeight > maxScreenHeight;
