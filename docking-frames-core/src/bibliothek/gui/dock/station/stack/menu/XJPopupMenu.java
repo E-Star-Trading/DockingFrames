@@ -3,9 +3,12 @@ package bibliothek.gui.dock.station.stack.menu;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.GridLayout;
+import java.awt.MouseInfo;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -13,6 +16,7 @@ import java.awt.event.ActionListener;
 import javax.swing.AbstractButton;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.UIManager;
 
@@ -49,7 +53,8 @@ public class XJPopupMenu extends JPopupMenu implements ActionListener {
 	@Override
 	public void show(Component invoker, int x, int y) {
 		panelMenus.validate();
-		int maxScreenHeight = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds().height;
+		GraphicsDevice gd = MouseInfo.getPointerInfo().getDevice();
+		int maxScreenHeight = gd.getDisplayMode().getHeight();
 		int contentHeight = 0;
 		int contentWidth = 0;
 		
@@ -68,38 +73,55 @@ public class XJPopupMenu extends JPopupMenu implements ActionListener {
 		boolean overflowsVertical = contentHeight > maxScreenHeight;
 		boolean overflowsHorizontal = contentWidth > MAX_WIDTH;
 		
-		int scrollbarVertical = overflowsVertical ? jScrollPane.getVerticalScrollBar().getPreferredSize().width : 0;
+		JScrollBar verticalScrollBar = jScrollPane.getVerticalScrollBar();
+		int scrollbarVertical = overflowsVertical ? verticalScrollBar.getPreferredSize().width : 0;
 		int scrollbarHorizontal = overflowsHorizontal ? jScrollPane.getHorizontalScrollBar().getPreferredSize().width : 0;
-
+		verticalScrollBar.setUnitIncrement(30);
+		
 		Dimension paneSize = new Dimension(contentWidth + scrollbarVertical + 20, contentHeight + scrollbarHorizontal);
-
+		int windowsTaskbarHeight = Toolkit.getDefaultToolkit().getScreenInsets(gd.getDefaultConfiguration()).bottom;
+		
 		Dimension popupSize = new Dimension(
 			Math.min(MAX_WIDTH, paneSize.width) + 20,
-			Math.min(maxScreenHeight, paneSize.height - (overflowsVertical ? 20 : 0))
+			Math.min(maxScreenHeight - windowsTaskbarHeight, paneSize.height - (overflowsVertical ? 20 : 0))
 		);
 		
 		// necessary for displaying the scroll bars
 		this.setPopupSize(popupSize);
 
 		this.setInvoker(invoker);
-
 		Point invokerOrigin = invoker.getLocationOnScreen();
-		
-		/*
-		 * adjusting the Popup Menu according to the Widows Task Bar height
-		 * the Popup Menu on the main screen ends just above the Windows Task Bar
-		 * other screens will use the same adjustment
-		 */
-		int originY = (int) invokerOrigin.getY() + y;
-		int screenHeight = (int) Toolkit.getDefaultToolkit().getScreenSize().getHeight();
-		int windowsTaskbarHeight = screenHeight - GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds().height;
+	    
+		int mouseY = MouseInfo.getPointerInfo().getLocation().y;
+	    // Adjust mouseY to be relative to the current screen
+	    GraphicsDevice currentScreen = getScreenDeviceAt(MouseInfo.getPointerInfo().getLocation());
+	    if (currentScreen != null) {
+	        Rectangle screenBounds = currentScreen.getDefaultConfiguration().getBounds();
+	        mouseY -= screenBounds.y;
+	    }
 		
 		// lowestY - the lowest point where the popup can be displayed without being hidden by task bar
-		int lowestY = screenHeight - popupSize.height - windowsTaskbarHeight;
+		int lowestY = maxScreenHeight - popupSize.height - windowsTaskbarHeight;
 
-		this.setLocation((int) invokerOrigin.getX() + x, Math.min(originY, lowestY));
-
+		Rectangle screenBounds = currentScreen.getDefaultConfiguration().getBounds();
+		int popupX = (int) invokerOrigin.getX() + x;
+		int popupY = screenBounds.y + Math.min(mouseY, lowestY);
+		this.setLocation(popupX, popupY);
 		this.setVisible(true);
+	}
+	
+	public static GraphicsDevice getScreenDeviceAt(Point point) {
+	    GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+	    GraphicsDevice[] screens = ge.getScreenDevices();
+	    
+	    for (GraphicsDevice screen : screens) {
+	        Rectangle bounds = screen.getDefaultConfiguration().getBounds();
+	        if (bounds.contains(point)) {
+	            return screen;
+	        }
+	    }
+	    
+	    return null;
 	}
 
 	public void hidemenu() {

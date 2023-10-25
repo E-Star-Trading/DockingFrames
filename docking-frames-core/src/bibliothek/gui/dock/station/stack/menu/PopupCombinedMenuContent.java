@@ -29,7 +29,10 @@ import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.swing.JPopupMenu;
 import javax.swing.event.PopupMenuEvent;
@@ -48,6 +51,17 @@ public class PopupCombinedMenuContent implements CombinedMenuContent{
 	private XJPopupMenu menu;
 	/** the observers of this menu */
 	private List<CombinedMenuContentListener> listeners = new ArrayList<CombinedMenuContentListener>();
+	/** comparator for sorting items */
+	private final Comparator<Item> comparator;
+	
+	public PopupCombinedMenuContent() {
+//		comparator = (i1, i2) -> 0;
+		this((i1, i2) -> 0);
+	}
+	
+	public PopupCombinedMenuContent(Comparator<Item> comparator) {
+		this.comparator = comparator;
+	}
 	
 	public void addCombinedMenuContentListener( CombinedMenuContentListener listener ){
 		listeners.add( listener );
@@ -81,7 +95,7 @@ public class PopupCombinedMenuContent implements CombinedMenuContent{
 			}
 		});
 		
-		for( Item item : content ){
+		for( Item item : Stream.of(content).sorted(comparator).collect(Collectors.toList())){
 			menu.add(new XItemButton(item));
 		}
 		
