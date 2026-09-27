@@ -82,9 +82,19 @@ public class XEclipseTabPainter extends XBaseTabComponent {
     private boolean wasPreviousSelected = false;
     
     /**
-     * This factory creates instances of {@link ArchGradientPainter}.
+     * The default factory, creating plain {@link XEclipseTabPainter}s.
      */
-    public static final XTabPainter FACTORY = new XTabPainter(){
+    public static final XTabPainter FACTORY = new Factory();
+
+    /**
+     * Creates the tab components of this theme. Subclass and override
+     * {@link #createTabComponent(XEclipseTabPane, Dockable)} to supply a customised tab component;
+     * the other three methods rarely need changing.
+     *
+     * <p>Before this class existed {@link XEclipseTabPainter#FACTORY} was an anonymous instance, so a
+     * client wanting to change one method had to reimplement all four.</p>
+     */
+    public static class Factory implements XTabPainter{
         public XTabComponent createTabComponent( XEclipseTabPane pane, Dockable dockable ) {
             return new XEclipseTabPainter( pane, dockable );
         }
@@ -100,7 +110,7 @@ public class XEclipseTabPainter extends XBaseTabComponent {
         public Border getFullBorder( BorderedComponent owner, DockController controller, Dockable dockable ){
           return UIManager.getBorder("Dock.title.border");
         }
-    };
+    }
 
     /** number of pixels at the left side that are empty and under the selected predecessor of this tab */
     private final int TAB_OVERLAP = 24;
