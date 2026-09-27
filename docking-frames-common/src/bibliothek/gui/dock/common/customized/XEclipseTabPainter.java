@@ -48,6 +48,7 @@ import bibliothek.extension.gui.dock.theme.eclipse.stack.tab.InvisibleTabPane;
 import bibliothek.extension.gui.dock.theme.eclipse.stack.tab.TabPanePainter;
 import bibliothek.gui.DockController;
 import bibliothek.gui.Dockable;
+import bibliothek.gui.dock.station.stack.tab.layouting.TabPlacement;
 import bibliothek.gui.dock.util.Transparency;
 import bibliothek.gui.dock.util.color.ColorCodes;
 
@@ -205,21 +206,9 @@ public class XEclipseTabPainter extends XBaseTabComponent {
     protected void update(){
         wasPreviousSelected = isPreviousTabSelected();
         
-        Insets labelInsets = null;
-        Insets buttonInsets = null;
-        
-        switch( getOrientation() ){
-            case TOP_OF_DOCKABLE:
-            case BOTTOM_OF_DOCKABLE:
-                labelInsets = new Insets( 3, 5, 3, 2 );
-                buttonInsets = new Insets( 1, 0, 1, 5 );
-                break;
-            case LEFT_OF_DOCKABLE:
-            case RIGHT_OF_DOCKABLE:
-                labelInsets = new Insets( 5, 3, 2, 3 );
-                buttonInsets = new Insets( 0, 1, 5, 1 );
-                break;
-        }
+        TabPlacement orientation = getOrientation();
+        Insets labelInsets = labelInsetsFor( orientation );
+        Insets buttonInsets = buttonInsetsFor( orientation );
         
         getLabel().setForeground( getTextColor() );
         Font font = UIManager.getLookAndFeelDefaults().getFont("defaultFont");
@@ -229,6 +218,38 @@ public class XEclipseTabPainter extends XBaseTabComponent {
         
         revalidate();
         repaint();
+    }
+    
+    /**
+     * The padding around this tab's label. Subclasses may override to make tabs denser or roomier.
+     * Called from {@link #update()}, which runs on every selection, focus, colour, orientation and
+     * enablement change, so an override is honoured for the lifetime of the tab.
+     * @param placement where the tabs sit, never <code>null</code>
+     * @return the insets, never <code>null</code>
+     */
+    protected Insets labelInsetsFor( TabPlacement placement ){
+        switch( placement ){
+            case LEFT_OF_DOCKABLE:
+            case RIGHT_OF_DOCKABLE:
+                return new Insets( 5, 3, 2, 3 );
+            default:
+                return new Insets( 3, 5, 3, 2 );
+        }
+    }
+    
+    /**
+     * The padding around this tab's action buttons. See {@link #labelInsetsFor(TabPlacement)}.
+     * @param placement where the tabs sit, never <code>null</code>
+     * @return the insets, never <code>null</code>
+     */
+    protected Insets buttonInsetsFor( TabPlacement placement ){
+        switch( placement ){
+            case LEFT_OF_DOCKABLE:
+            case RIGHT_OF_DOCKABLE:
+                return new Insets( 0, 1, 5, 1 );
+            default:
+                return new Insets( 1, 0, 1, 5 );
+        }
     }
     
     protected Arch arch( int width, int height ){
