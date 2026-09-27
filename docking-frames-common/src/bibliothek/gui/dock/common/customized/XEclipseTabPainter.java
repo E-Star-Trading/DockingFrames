@@ -211,13 +211,26 @@ public class XEclipseTabPainter extends XBaseTabComponent {
         Insets buttonInsets = buttonInsetsFor( orientation );
         
         getLabel().setForeground( getTextColor() );
-        Font font = UIManager.getLookAndFeelDefaults().getFont("defaultFont");
-		getLabel().setFont(font.deriveFont(Font.BOLD));
+        getLabel().setFont( labelFont() );
         setLabelInsets( labelInsets );
         setButtonInsets( buttonInsets );
         
         revalidate();
         repaint();
+    }
+    
+    /**
+     * The base font of this tab's label. Subclasses may override, for instance to make tab height
+     * follow a density setting.
+     *
+     * <p>This is the <i>base</i> font. {@link XBaseTabComponent#updateFont()} additionally installs
+     * a font modifier chosen by tab state (selected, focused, disabled), applied on top of whatever
+     * is returned here. The two mechanisms cooperate; neither replaces the other.</p>
+     *
+     * @return the base font, never <code>null</code>
+     */
+    protected Font labelFont(){
+        return UIManager.getLookAndFeelDefaults().getFont( "defaultFont" ).deriveFont( Font.BOLD );
     }
     
     /**
