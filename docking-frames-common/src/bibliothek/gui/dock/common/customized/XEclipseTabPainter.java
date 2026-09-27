@@ -48,6 +48,7 @@ import bibliothek.extension.gui.dock.theme.eclipse.stack.tab.InvisibleTabPane;
 import bibliothek.extension.gui.dock.theme.eclipse.stack.tab.TabPanePainter;
 import bibliothek.gui.DockController;
 import bibliothek.gui.Dockable;
+import bibliothek.gui.dock.station.stack.tab.layouting.TabPlacement;
 import bibliothek.gui.dock.util.Transparency;
 import bibliothek.gui.dock.util.color.ColorCodes;
 
@@ -82,9 +83,19 @@ public class XEclipseTabPainter extends XBaseTabComponent {
     private boolean wasPreviousSelected = false;
     
     /**
-     * This factory creates instances of {@link ArchGradientPainter}.
+     * The default factory, creating plain {@link XEclipseTabPainter}s.
      */
-    public static final XTabPainter FACTORY = new XTabPainter(){
+    public static final XTabPainter FACTORY = new Factory();
+
+    /**
+     * Creates the tab components of this theme. Subclass and override
+     * {@link #createTabComponent(XEclipseTabPane, Dockable)} to supply a customised tab component;
+     * the other three methods rarely need changing.
+     *
+     * <p>Before this class existed {@link XEclipseTabPainter#FACTORY} was an anonymous instance, so a
+     * client wanting to change one method had to reimplement all four.</p>
+     */
+    public static class Factory implements XTabPainter{
         public XTabComponent createTabComponent( XEclipseTabPane pane, Dockable dockable ) {
             return new XEclipseTabPainter( pane, dockable );
         }
@@ -100,7 +111,7 @@ public class XEclipseTabPainter extends XBaseTabComponent {
         public Border getFullBorder( BorderedComponent owner, DockController controller, Dockable dockable ){
           return UIManager.getBorder("Dock.title.border");
         }
-    };
+    }
 
     /** number of pixels at the left side that are empty and under the selected predecessor of this tab */
     private final int TAB_OVERLAP = 24;
@@ -195,30 +206,63 @@ public class XEclipseTabPainter extends XBaseTabComponent {
     protected void update(){
         wasPreviousSelected = isPreviousTabSelected();
         
-        Insets labelInsets = null;
-        Insets buttonInsets = null;
-        
-        switch( getOrientation() ){
-            case TOP_OF_DOCKABLE:
-            case BOTTOM_OF_DOCKABLE:
-                labelInsets = new Insets( 3, 5, 3, 2 );
-                buttonInsets = new Insets( 1, 0, 1, 5 );
-                break;
-            case LEFT_OF_DOCKABLE:
-            case RIGHT_OF_DOCKABLE:
-                labelInsets = new Insets( 5, 3, 2, 3 );
-                buttonInsets = new Insets( 0, 1, 5, 1 );
-                break;
-        }
+        TabPlacement orientation = getOrientation();
+        Insets labelInsets = labelInsetsFor( orientation );
+        Insets buttonInsets = buttonInsetsFor( orientation );
         
         getLabel().setForeground( getTextColor() );
-        Font font = UIManager.getLookAndFeelDefaults().getFont("defaultFont");
-		getLabel().setFont(font.deriveFont(Font.BOLD));
+        getLabel().setFont( labelFont() );
         setLabelInsets( labelInsets );
         setButtonInsets( buttonInsets );
         
         revalidate();
         repaint();
+    }
+    
+    /**
+     * The base font of this tab's label. Subclasses may override, for instance to make tab height
+     * follow a density setting.
+     *
+     * <p>This is the <i>base</i> font. {@link XBaseTabComponent#updateFont()} additionally installs
+     * a font modifier chosen by tab state (selected, focused, disabled), applied on top of whatever
+     * is returned here. The two mechanisms cooperate; neither replaces the other.</p>
+     *
+     * @return the base font, never <code>null</code>
+     */
+    protected Font labelFont(){
+        return UIManager.getLookAndFeelDefaults().getFont( "defaultFont" ).deriveFont( Font.BOLD );
+    }
+    
+    /**
+     * The padding around this tab's label. Subclasses may override to make tabs denser or roomier.
+     * Called from {@link #update()}, which runs on every selection, focus, colour, orientation and
+     * enablement change, so an override is honoured for the lifetime of the tab.
+     * @param placement where the tabs sit, never <code>null</code>
+     * @return the insets, never <code>null</code>
+     */
+    protected Insets labelInsetsFor( TabPlacement placement ){
+        switch( placement ){
+            case LEFT_OF_DOCKABLE:
+            case RIGHT_OF_DOCKABLE:
+                return new Insets( 5, 3, 2, 3 );
+            default:
+                return new Insets( 3, 5, 3, 2 );
+        }
+    }
+    
+    /**
+     * The padding around this tab's action buttons. See {@link #labelInsetsFor(TabPlacement)}.
+     * @param placement where the tabs sit, never <code>null</code>
+     * @return the insets, never <code>null</code>
+     */
+    protected Insets buttonInsetsFor( TabPlacement placement ){
+        switch( placement ){
+            case LEFT_OF_DOCKABLE:
+            case RIGHT_OF_DOCKABLE:
+                return new Insets( 0, 1, 5, 1 );
+            default:
+                return new Insets( 1, 0, 1, 5 );
+        }
     }
     
     protected Arch arch( int width, int height ){
