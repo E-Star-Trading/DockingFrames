@@ -36,6 +36,9 @@ startup:
   was first on the `PATH` - a JDK 25 - so the spliced classes came out at class file major 69 while the rest
   of the jar was major 52. The client runs on Java 17 and threw `UnsupportedClassVersionError`. Matching
   `pom.xml`'s `<javaVersion>1.8</javaVersion>` also keeps the local jar equal to what a real build produces.
+  The hazard is not historical: on the machine this was written for, `JAVA_HOME` is a JDK 21 and the
+  `javac` on the `PATH` is 25, so the script defaults to the JDK 17 the client was verified against and
+  prints which compiler it used.
 - **Assert the class file version before packing, and rescan afterwards.** Nothing between the compiler and
   a running client looks at a class file version, so the assertion is the only check there is.
 
@@ -43,4 +46,11 @@ The script also replaces a top-level class together with its nested and anonymou
 names `javac` emits leaves orphans behind - `1.1.3p4` carries an `XEclipseTabPainter$2` that the current
 source no longer produces.
 
-The jar is locked while a client or a build daemon holds it; the script retries the swap and then says so.
+The generated pom declares no dependencies. That is safe only because the consuming build declares
+`e-star-docking-frames-core` itself - `MarketMaker/build.gradle` does - so nothing relies on transitive
+resolution from this artifact.
+
+The jar is locked while anything holds it open, and the script retries the swap and then names the file.
+The obvious holders are the client and a build daemon. The one that actually caused this was neither: an
+ad-hoc probe JVM with the jar on its `-cp`, idle for a day. On Windows any JVM that ever had the jar on a
+classpath still holds it, so look past the two obvious candidates.

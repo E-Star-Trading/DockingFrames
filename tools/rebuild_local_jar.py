@@ -35,6 +35,7 @@ client or a build daemon holds it, and the usual fix is to close the client.
 """
 import argparse
 import glob
+import re
 import os
 import shutil
 import struct
@@ -49,11 +50,38 @@ PACKAGE = 'bibliothek/gui/dock/common/customized/'
 SOURCE_ROOT = os.path.join(REPO, 'docking-frames-common', 'src')
 
 
+def natural_key(text):
+    """Sort key where 1.1.5-p2 comes after 1.1.5-p1, and 1.1.10 after 1.1.9."""
+    return [int(part) if part.isdigit() else part for part in re.split(r'(\d+)', text)]
+
+
+def belongs_to(simple_name, classes):
+    """True when a class belongs to one of the replaced top-level classes.
+
+    The single matcher for both ends of the splice, which have to agree: if one side matched by
+    prefix and the other by exact name, a prefix sibling would be added without its old entry
+    being dropped, and the jar would end up with a duplicate entry.
+    """
+    return any(simple_name == c or simple_name.startswith(c + '$') for c in classes)
+
+
 def find_one(pattern, what):
-    hits = [h for h in glob.glob(pattern, recursive=True) if 'sources' not in os.path.basename(h)]
+    """The newest artifact matching the glob, never a -sources or -javadoc sibling.
+
+    Plain lexicographic order picks the OLDEST version, and -javadoc sorts ahead of the real jar
+    of the same version, so both filters matter. Ambiguity is printed rather than hidden.
+    """
+    hits = [h for h in glob.glob(pattern, recursive=True)
+            if not any(tag in os.path.basename(h) for tag in ('-sources', '-javadoc'))]
     if not hits:
         sys.exit('no %s found matching %s - pass it explicitly' % (what, pattern))
-    return sorted(hits)[0]
+    hits.sort(key=lambda h: natural_key(os.path.basename(h)))
+    chosen = hits[-1]
+    if len(set(os.path.basename(h) for h in hits)) > 1:
+        print('%d candidates for the %s, taking the newest:' % (len(hits), what))
+        for h in hits:
+            print('    %s %s' % ('->' if h == chosen else '  ', h))
+    return chosen
 
 
 def parse_args():
@@ -105,25 +133,30 @@ def compile_classes(args):
 
 
 def collect(args):
-    """Every emitted class, asserted to be Java 8 before anything is packed."""
+    """Every emitted class, asserted to be Java 8 before anything is packed.
+
+    Selected with belongs_to, the same matcher install() drops with, so the two cannot disagree.
+    """
     emitted = {}
+    for path in glob.glob(os.path.join(args.out, PACKAGE.replace('/', os.sep), '*.class')):
+        simple = os.path.basename(path)[:-len('.class')]
+        if not belongs_to(simple, args.classes):
+            continue
+        data = open(path, 'rb').read()
+        major = struct.unpack('>H', data[6:8])[0]
+        if major != JAVA_8_MAJOR:
+            sys.exit('%s is class file major %d, expected %d - wrong javac or wrong --release'
+                     % (os.path.basename(path), major, JAVA_8_MAJOR))
+        emitted[PACKAGE + os.path.basename(path)] = data
     for name in args.classes:
-        found = glob.glob(os.path.join(args.out, PACKAGE.replace('/', os.sep), name + '*.class'))
-        if not found:
+        if PACKAGE + name + '.class' not in emitted:
             sys.exit('javac emitted nothing for ' + name)
-        for path in found:
-            data = open(path, 'rb').read()
-            major = struct.unpack('>H', data[6:8])[0]
-            if major != JAVA_8_MAJOR:
-                sys.exit('%s is class file major %d, expected %d - wrong javac or wrong --release'
-                         % (os.path.basename(path), major, JAVA_8_MAJOR))
-            emitted[PACKAGE + os.path.basename(path)] = data
     print('%d class file(s), every one major %d' % (len(emitted), JAVA_8_MAJOR))
     return emitted
 
 
 def is_stale(name, classes):
-    """True for a class that belongs to one of the replaced top-level classes.
+    """True for a jar entry that belongs to one of the replaced top-level classes.
 
     Replacing only the names javac happened to emit is not enough: the published 1.1.3p4 carries
     XEclipseTabPainter$2, an anonymous class of a source revision that no longer has one, and leaving
@@ -133,8 +166,7 @@ def is_stale(name, classes):
     """
     if not name.startswith(PACKAGE) or not name.endswith('.class'):
         return False
-    simple = name[len(PACKAGE):-len('.class')]
-    return any(simple == c or simple.startswith(c + '$') for c in classes)
+    return belongs_to(name[len(PACKAGE):-len('.class')], classes)
 
 
 def install(args, emitted):
@@ -160,6 +192,10 @@ def install(args, emitted):
             break
         except OSError as e:
             if attempt == args.retries:
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
                 sys.exit('could not swap in %s after %d attempts (%s).\n'
                          'The jar is locked - close the client and any build daemon holding it.' % (jar, attempt, e))
             print('  locked, retrying (%d/%d)' % (attempt, args.retries))
