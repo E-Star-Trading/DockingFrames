@@ -82,6 +82,9 @@ public class XEclipseTabPainter extends XBaseTabComponent {
     private Arch arch;
     private boolean wasPreviousSelected = false;
     
+    /** whether {@link #updateOnceAfterConstruction()} still owes this tab its second pass */
+    private boolean beforeFirstLayout = true;
+    
     /**
      * The default factory, creating plain {@link XEclipseTabPainter}s.
      */
@@ -152,6 +155,8 @@ public class XEclipseTabPainter extends XBaseTabComponent {
     
     @Override
     public Dimension getPreferredSize(){
+        updateOnceAfterConstruction();
+        
         boolean previousSelected = isPreviousTabSelected();
         if( wasPreviousSelected != previousSelected ){
             update();
@@ -162,12 +167,37 @@ public class XEclipseTabPainter extends XBaseTabComponent {
     
     @Override
     public Dimension getMinimumSize(){
+        updateOnceAfterConstruction();
+        
         boolean previousSelected = isPreviousTabSelected();
         if( wasPreviousSelected != previousSelected ){
             update();
         }
         
         return super.getMinimumSize();
+    }
+    
+    @Override
+    public void doLayout(){
+        updateOnceAfterConstruction();
+        super.doLayout();
+    }
+    
+    /**
+     * Runs {@link #update()} a second time, once every constructor in the chain has returned.
+     *
+     * <p>The constructor cannot ask a subclass anything: it calls {@link #update()}, and the three
+     * hooks that reaches - {@link #labelInsetsFor(TabPlacement)},
+     * {@link #buttonInsetsFor(TabPlacement)} and {@link #labelFont()} - run before the subclass's own
+     * fields are assigned. The first layout or size query is the earliest moment at which the object
+     * is whole, so that is where the question gets put again. It happens once; after it,
+     * {@link #update()} runs on state changes as before.</p>
+     */
+    private void updateOnceAfterConstruction(){
+        if( beforeFirstLayout ){
+            beforeFirstLayout = false;
+            update();
+        }
     }
     
     @Override
@@ -207,13 +237,18 @@ public class XEclipseTabPainter extends XBaseTabComponent {
         wasPreviousSelected = isPreviousTabSelected();
         
         TabPlacement orientation = getOrientation();
+        
+        // a hook answers null while the subclass overriding it is still being constructed; this pass
+        // then uses what this class would have used, and updateOnceAfterConstruction() puts the
+        // question again as soon as the subclass is whole
         Insets labelInsets = labelInsetsFor( orientation );
         Insets buttonInsets = buttonInsetsFor( orientation );
+        Font font = labelFont();
         
         getLabel().setForeground( getTextColor() );
-        getLabel().setFont( labelFont() );
-        setLabelInsets( labelInsets );
-        setButtonInsets( buttonInsets );
+        getLabel().setFont( font == null ? defaultLabelFont() : font );
+        setLabelInsets( labelInsets == null ? defaultLabelInsets( orientation ) : labelInsets );
+        setButtonInsets( buttonInsets == null ? defaultButtonInsets( orientation ) : buttonInsets );
         
         revalidate();
         repaint();
@@ -227,20 +262,48 @@ public class XEclipseTabPainter extends XBaseTabComponent {
      * a font modifier chosen by tab state (selected, focused, disabled), applied on top of whatever
      * is returned here. The two mechanisms cooperate; neither replaces the other.</p>
      *
-     * @return the base font, never <code>null</code>
+     * <p><b>Runs during construction</b>, see {@link #labelInsetsFor(TabPlacement)}.</p>
+     *
+     * @return the base font, or <code>null</code> to use this class's own
      */
     protected Font labelFont(){
-        return UIManager.getLookAndFeelDefaults().getFont( "defaultFont" ).deriveFont( Font.BOLD );
+        return defaultLabelFont();
     }
     
     /**
      * The padding around this tab's label. Subclasses may override to make tabs denser or roomier.
-     * Called from {@link #update()}, which runs on every selection, focus, colour, orientation and
-     * enablement change, so an override is honoured for the lifetime of the tab.
+     *
+     * <p><b>This runs during construction.</b> {@link #XEclipseTabPainter(XEclipseTabPane, Dockable)}
+     * calls {@link #update()}, which calls this method before a subclass's fields are assigned: an
+     * override reading an instance field sees it null or zero on that first call, and one reading a
+     * constructor parameter cannot see it at all. Answer <code>null</code> while the answer is not
+     * available yet and this class's own value is used for that pass. The question is put again at
+     * the first layout, by which time every constructor in the chain has returned, and after that on
+     * every selection, focus, colour, orientation and enablement change. An override is therefore
+     * honoured for the lifetime of the tab, but not during its construction.</p>
+     *
+     * <p>A value that settles later still - a density the client changes while the tab is on screen -
+     * reaches the tab through {@link #update()}, which subclasses may call.</p>
+     *
      * @param placement where the tabs sit, never <code>null</code>
-     * @return the insets, never <code>null</code>
+     * @return the insets, or <code>null</code> to use this class's own
      */
     protected Insets labelInsetsFor( TabPlacement placement ){
+        return defaultLabelInsets( placement );
+    }
+    
+    /**
+     * The padding around this tab's action buttons. See {@link #labelInsetsFor(TabPlacement)},
+     * including what it says about construction.
+     * @param placement where the tabs sit, never <code>null</code>
+     * @return the insets, or <code>null</code> to use this class's own
+     */
+    protected Insets buttonInsetsFor( TabPlacement placement ){
+        return defaultButtonInsets( placement );
+    }
+    
+    /** the label padding this painter has used since 1.1.3p4, and the fallback for a null override */
+    private static Insets defaultLabelInsets( TabPlacement placement ){
         switch( placement ){
             case LEFT_OF_DOCKABLE:
             case RIGHT_OF_DOCKABLE:
@@ -250,12 +313,8 @@ public class XEclipseTabPainter extends XBaseTabComponent {
         }
     }
     
-    /**
-     * The padding around this tab's action buttons. See {@link #labelInsetsFor(TabPlacement)}.
-     * @param placement where the tabs sit, never <code>null</code>
-     * @return the insets, never <code>null</code>
-     */
-    protected Insets buttonInsetsFor( TabPlacement placement ){
+    /** the button padding this painter has used since 1.1.3p4, and the fallback for a null override */
+    private static Insets defaultButtonInsets( TabPlacement placement ){
         switch( placement ){
             case LEFT_OF_DOCKABLE:
             case RIGHT_OF_DOCKABLE:
@@ -263,6 +322,11 @@ public class XEclipseTabPainter extends XBaseTabComponent {
             default:
                 return new Insets( 1, 0, 1, 5 );
         }
+    }
+    
+    /** the label font this painter has used since 1.1.3p4, and the fallback for a null override */
+    private static Font defaultLabelFont(){
+        return UIManager.getLookAndFeelDefaults().getFont( "defaultFont" ).deriveFont( Font.BOLD );
     }
     
     protected Arch arch( int width, int height ){

@@ -40,6 +40,15 @@ public class XEclipseTabPainterTest{
     /** the label insets the painter has used for vertical tabs since 1.1.3p4 */
     private static final Insets VERTICAL_LABEL_INSETS = new Insets( 5, 3, 2, 3 );
 
+    /** what {@link LateBoundPainter} answers, but only once its own constructor has run */
+    private static final Insets LATE_LABEL_INSETS = new Insets( 1, 5, 1, 2 );
+
+    /** see {@link #LATE_LABEL_INSETS} */
+    private static final Insets LATE_BUTTON_INSETS = new Insets( 0, 0, 0, 5 );
+
+    /** see {@link #LATE_LABEL_INSETS} */
+    private static final Font LATE_FONT = new Font( Font.MONOSPACED, Font.ITALIC, 23 );
+
     private XEclipseTabPane pane;
     private Font previousDefaultFont;
 
@@ -143,6 +152,63 @@ public class XEclipseTabPainterTest{
         assertEquals( labelSize.height + label.top + label.bottom, tab.getPreferredSize().height );
     }
 
+    @Test
+    public void aSubclassWhoseFieldsAreNotAssignedYetStillBuildsATab(){
+        // the superclass constructor calls update(), so on that first pass every hook of a subclass
+        // that keeps its answer in a field returns null; setLabelInsets( null ) threw and the client
+        // got no tab at all
+        XEclipseTabPainter tab = tab( lateBoundFactory() );
+
+        assertEquals( HORIZONTAL_LABEL_INSETS, tab.getLabelInsets() );
+        assertEquals( new Insets( 1, 0, 1, 5 ), tab.getButtonInsets() );
+        Font lookAndFeelFont = UIManager.getLookAndFeelDefaults().getFont( "defaultFont" ).deriveFont( Font.BOLD );
+        assertEquals( "the label did not get this class's own font", lookAndFeelFont, layout( tab ).getLabel().getFont() );
+    }
+
+    @Test
+    public void aSubclassIsAskedAgainOnceEveryConstructorHasReturned(){
+        XEclipseTabPainter tab = tab( lateBoundFactory() );
+
+        tab.getPreferredSize();
+
+        assertEquals( LATE_LABEL_INSETS, tab.getLabelInsets() );
+        assertEquals( LATE_BUTTON_INSETS, tab.getButtonInsets() );
+        assertEquals( LATE_FONT, layout( tab ).getLabel().getFont() );
+    }
+
+    @Test
+    public void theSecondPassAlsoReachesATabThatIsLaidOutWithoutBeingMeasured(){
+        XEclipseTabPainter tab = tab( lateBoundFactory() );
+
+        tab.doLayout();
+
+        assertEquals( LATE_LABEL_INSETS, tab.getLabelInsets() );
+    }
+
+    @Test
+    public void theSecondPassRunsOnceAndNotOnEveryLayout(){
+        // update() revalidates, so running it from every layout would schedule the next one
+        CountingPainter tab = (CountingPainter)tab( countingFactory() );
+        tab.getPreferredSize();
+        int afterTheSecondPass = tab.updates();
+
+        tab.doLayout();
+        tab.getPreferredSize();
+        tab.getMinimumSize();
+
+        assertEquals( "update() ran again after the second pass", afterTheSecondPass, tab.updates() );
+    }
+
+    @Test
+    public void theSecondPassDoesNotUndoWhatHappenedInBetween(){
+        XEclipseTabPainter tab = tab( XEclipseTabPainter.FACTORY );
+        tab.setOrientation( TabPlacement.LEFT_OF_DOCKABLE );
+
+        tab.getPreferredSize();
+
+        assertEquals( VERTICAL_LABEL_INSETS, tab.getLabelInsets() );
+    }
+
     private XEclipseTabPainter tab( XTabPainter factory ){
         XTabComponent component = factory.createTabComponent( pane, new DefaultDockable( "Quoting Sheet" ) );
         assertNotNull( component );
@@ -201,6 +267,77 @@ public class XEclipseTabPainterTest{
                 default:
                     return new Insets( insets.top, insets.left, insets.bottom, insets.right );
             }
+        }
+    }
+
+    private XEclipseTabPainter.Factory countingFactory(){
+        return new XEclipseTabPainter.Factory(){
+            @Override
+            public XTabComponent createTabComponent( XEclipseTabPane owner, Dockable dockable ){
+                return new CountingPainter( owner, dockable );
+            }
+        };
+    }
+
+    /**
+     * Counts the passes. The counter carries no initialiser on purpose: one would run after
+     * <code>super()</code> and discard the constructor's own pass - the same ordering that makes
+     * {@link LateBoundPainter} answer null.
+     */
+    private static class CountingPainter extends XEclipseTabPainter{
+        private int updates;
+
+        CountingPainter( XEclipseTabPane pane, Dockable dockable ){
+            super( pane, dockable );
+        }
+
+        int updates(){
+            return updates;
+        }
+
+        @Override
+        protected void update(){
+            updates++;
+            super.update();
+        }
+    }
+
+    private XEclipseTabPainter.Factory lateBoundFactory(){
+        return new XEclipseTabPainter.Factory(){
+            @Override
+            public XTabComponent createTabComponent( XEclipseTabPane owner, Dockable dockable ){
+                return new LateBoundPainter( owner, dockable );
+            }
+        };
+    }
+
+    /**
+     * The shape a client reaches for first: the answers live in fields, which the superclass
+     * constructor runs too early to see. Unlike {@link MarkedPainter} this one takes no precautions -
+     * it is the painter a reader of the javadoc would write.
+     */
+    private static class LateBoundPainter extends XEclipseTabPainter{
+        private final Insets label = LATE_LABEL_INSETS;
+        private final Insets button = LATE_BUTTON_INSETS;
+        private final Font font = LATE_FONT;
+
+        LateBoundPainter( XEclipseTabPane pane, Dockable dockable ){
+            super( pane, dockable );
+        }
+
+        @Override
+        protected Insets labelInsetsFor( TabPlacement placement ){
+            return label;
+        }
+
+        @Override
+        protected Insets buttonInsetsFor( TabPlacement placement ){
+            return button;
+        }
+
+        @Override
+        protected Font labelFont(){
+            return font;
         }
     }
 }
