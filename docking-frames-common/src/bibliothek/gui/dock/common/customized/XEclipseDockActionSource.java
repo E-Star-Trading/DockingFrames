@@ -84,9 +84,6 @@ public class XEclipseDockActionSource extends FilteredDockActionSource {
 					.setIcon(DockFontIconLibrary.getScalableIcon(DockFontIconIdentifier.CLOSE));
         }
 		changeIcon(action);
-		if (action instanceof CCloseAction.Action) {
-			return showForTab;
-		}
         if( showForTab ){
             return connector.shouldShowOnTab( action, tab );
         }
