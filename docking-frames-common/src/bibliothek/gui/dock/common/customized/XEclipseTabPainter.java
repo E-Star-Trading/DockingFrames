@@ -302,6 +302,23 @@ public class XEclipseTabPainter extends XBaseTabComponent {
         return defaultButtonInsets( placement );
     }
     
+    /**
+     * The corner radius of a tab's painted background, in pixels. Subclasses may override to make tabs squarer.
+     *
+     * <p>Painting only: a tab's size comes from its label and {@link #labelInsetsFor(TabPlacement)}, so the radius
+     * costs no space. What it costs is apparent padding - a round end of radius <code>r</code> cuts
+     * <code>r - sqrt(r*r - d*d)</code> off the clearance at distance <code>d</code> from the tab's vertical middle,
+     * which is where the capitals are - so a squarer tab reads as roomier at the same insets.</p>
+     *
+     * <p>Unlike the three metric hooks this one is called while painting rather than from
+     * {@link #XEclipseTabPainter(XEclipseTabPane, Dockable)}, so an override may read a subclass's own fields.</p>
+     *
+     * @return the radius, in pixels
+     */
+    protected int cornerRadius(){
+        return CORNER_RADIUS;
+    }
+    
     /** the label padding this painter has used since 1.1.3p4, and the fallback for a null override */
     private static Insets defaultLabelInsets( TabPlacement placement ){
         switch( placement ){
@@ -443,7 +460,8 @@ public class XEclipseTabPainter extends XBaseTabComponent {
         g2d.setPaint( color );
         
         if( getTransparency() != Transparency.TRANSPARENT ){
-            g.fillRoundRect(x, y, w - 1, h - 1, CORNER_RADIUS, CORNER_RADIUS);
+            int radius = cornerRadius();
+            g.fillRoundRect(x, y, w - 1, h - 1, radius, radius);
         }
         
         g2d.setPaint( old );

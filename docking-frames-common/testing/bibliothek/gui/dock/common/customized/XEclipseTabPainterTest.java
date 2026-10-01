@@ -1,13 +1,17 @@
 package bibliothek.gui.dock.common.customized;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Graphics2D;
 import java.awt.Insets;
+import java.awt.image.BufferedImage;
 
 import javax.swing.UIManager;
 
@@ -51,6 +55,7 @@ public class XEclipseTabPainterTest{
 
     private XEclipseTabPane pane;
     private Font previousDefaultFont;
+    private Object previousDockBackground;
 
     @Before
     public void setUp(){
@@ -61,11 +66,18 @@ public class XEclipseTabPainterTest{
         if( previousDefaultFont == null ){
             UIManager.getLookAndFeelDefaults().put( "defaultFont", UIManager.getFont( "Label.font" ) );
         }
+
+        // paintBackground reads its fill out of the look and feel, and the stock defaults have no Dock colours
+        previousDockBackground = UIManager.get( "Dock.background" );
+        if( previousDockBackground == null ){
+            UIManager.put( "Dock.background", new Color( 44, 55, 66 ) );
+        }
     }
 
     @After
     public void tearDown(){
         UIManager.getLookAndFeelDefaults().put( "defaultFont", previousDefaultFont );
+        UIManager.put( "Dock.background", previousDockBackground );
     }
 
     @Test
@@ -207,6 +219,45 @@ public class XEclipseTabPainterTest{
         tab.getPreferredSize();
 
         assertEquals( VERTICAL_LABEL_INSETS, tab.getLabelInsets() );
+    }
+
+    /**
+     * A tab's size comes from its label and its insets, so the corner radius costs no space at all - but it does
+     * cost apparent padding, because a round end eats into the clearance exactly where the capitals are. A client
+     * that wants squarer tabs overrides this and gets the pixels back as padding.
+     */
+    @Test
+    public void theCornerRadiusIsTheOneTheSubclassAsksFor(){
+        assertEquals( "a round tab painted its own corner", background(), cornerOf( 25 ) );
+        assertFalse( "a square tab left its corner unpainted", background() == cornerOf( 0 ) );
+    }
+
+    /** The colour of the pixel two in from the top left corner, after the tab has painted its background. */
+    private int cornerOf( final int radius ){
+        XEclipseTabPainter tab = tab( new XEclipseTabPainter.Factory(){
+            @Override
+            public XTabComponent createTabComponent( XEclipseTabPane owner, Dockable dockable ){
+                return new XEclipseTabPainter( owner, dockable ){
+                    @Override
+                    protected int cornerRadius(){
+                        return radius;
+                    }
+                };
+            }
+        } );
+        tab.setSize( 60, 18 );
+        BufferedImage image = new BufferedImage( 60, 18, BufferedImage.TYPE_INT_ARGB );
+        Graphics2D graphics = image.createGraphics();
+        graphics.setColor( new Color( background() ) );
+        graphics.fillRect( 0, 0, 60, 18 );
+        tab.paintBackground( graphics );
+        graphics.dispose();
+        return image.getRGB( 2, 2 );
+    }
+
+    /** A colour no tab paints, so a corner still wearing it is a corner nothing covered. */
+    private static int background(){
+        return new Color( 7, 11, 13 ).getRGB();
     }
 
     private XEclipseTabPainter tab( XTabPainter factory ){
